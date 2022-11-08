@@ -25,17 +25,24 @@ func main() {
 	fmt.Printf("The UDP server is %s\n", c.RemoteAddr().String())
 	defer c.Close()
 
-	for {
-		_, err = c.Write(payload)
+	fmt.Printf("now writing payload: %v \n", string(payload))
+	_, err = c.Write(payload)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
+	for {
+		fmt.Printf("now sleep: %v \n", time.Now().Second())
+		time.Sleep(3 * time.Second)
+
+		buffer := make([]byte, 1024)
+		n, _, err := c.ReadFromUDP(buffer)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		fmt.Printf("now sleep: %v \n", time.Now().Second())
-		time.Sleep(3 * time.Second)
-
+		fmt.Printf("Reply: %s\n", string(buffer[0:n]))
 	}
 }
 

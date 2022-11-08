@@ -6,7 +6,8 @@ import (
 )
 
 type PresenceServer interface {
-	Listen(handler func(*ConnectionRequest))
+	Listen(handler func(*ConnectionRequest, *net.UDPAddr))
+	Write(message string, addr *net.UDPAddr) 
 }
 
 type UdpServer struct {
@@ -30,14 +31,24 @@ func NewUdpServer(port string) *UdpServer {
 	return &UdpServer{connection: connection}
 }
 
-func (s *UdpServer) Listen(handler func(*ConnectionRequest)) {
+func (s *UdpServer) Listen(handler func(*ConnectionRequest, *net.UDPAddr)) {
 
 	buffer := make([]byte, 1024)
 	for {
-		n, _, _ := s.connection.ReadFromUDP(buffer)
-		bits := buffer[0:n]
+		n, addr, _ := s.connection.ReadFromUDP(buffer)
 
-		conRequest := NewConnectionRequest(bits)
-		fmt.Printf("conRequest, UserId: %v \n", conRequest.UserId)
+		conRequest := NewConnectionRequest(buffer[0:n])
+		handler(conRequest, addr)
+	}
+}
+
+func (s *UdpServer) Write(message string, addr *net.UDPAddr) {
+
+	data := []byte(message)
+	fmt.Printf("data: %s\n", string(data))
+	_, err := s.connection.WriteToUDP(data, addr)
+	if err != nil {
+			fmt.Println(err)
+			return
 	}
 }

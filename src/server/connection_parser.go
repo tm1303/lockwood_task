@@ -12,11 +12,11 @@ type ConnectionRequest struct {
 
 func NewConnectionRequest(in []byte) *ConnectionRequest {
 
-	fmt.Printf("in:\n %v\n", string(in[:]))
-
 	var jsonData ConnectionRequest
 	err := json.Unmarshal(in, &jsonData)
-	fmt.Println(err)
+	if err != nil {
+		fmt.Println("error: ", err)
+	}
 
 	return &jsonData
 }
