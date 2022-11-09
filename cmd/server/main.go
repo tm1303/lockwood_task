@@ -10,6 +10,6 @@ var udpPort string = ":13131"
 
 func main() {
 	server := lockwood_server.NewUdpServer(udpPort)
-	connectionManager := lockwood_manager.NewConnectionManager(server)
+	connectionManager := lockwood_manager.NewUserSessionManager(server)
 	connectionManager.Start()
 }
