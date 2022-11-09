@@ -22,6 +22,7 @@ type UserSession struct {
 	onlineStatusRequestChan chan *OnlineStatusRequest
 	mutex                   sync.Mutex
 	friends                 map[int]*UserSession
+	SessionTimeout          *time.Timer
 }
 
 type OnlineStatusRequest struct {
@@ -47,17 +48,24 @@ func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierCh
 	}
 
 	go userSession.MonitorOnlineStatusRequests(usm)
-	go func() {
-		for {
-			userSession.RefreshAllFriendsOnlineStatus()
-			time.Sleep(refreshDelay)
-		}
-	}()
+	go keepFriendStatusUpdated(usm, userId)
 
 	return userSession
 }
 
+func keepFriendStatusUpdated(usm *UserSessionManager, userId int) {
+	for {
+		user, found := usm.GetConnectedUser(userId)
+		if !found {
+			break
+		}
+		user.RefreshAllFriendsOnlineStatus()
+		time.Sleep(refreshDelay)
+	}
+}
+
 func (s *UserSession) RefreshAllFriendsOnlineStatus() {
+
 	fmt.Printf("\nRefresh all friends for %v\n", s.userId)
 	for friendId := range s.friends {
 		s.onlineStatusRequestChan <- &OnlineStatusRequest{
@@ -69,6 +77,11 @@ func (s *UserSession) RefreshAllFriendsOnlineStatus() {
 
 func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
 	for {
+		_, found := usm.GetConnectedUser(s.userId)
+		if !found {
+			break
+		}
+
 		request := <-s.onlineStatusRequestChan
 		if friendTarget, found := usm.GetConnectedUser(request.friendId); found {
 			if friendTarget.ValidateFriendRequestSymmetry(s.userId) {
@@ -115,5 +128,19 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 	if currentSessionFriend != offlineUser {
 		s.friends[friendId] = offlineUser
 		s.Notifier <- fmt.Sprintf("Your friend is OFFLINE! (UserId: %v)", friendId)
+	}
+}
+
+func (s *UserSession) ResetTimeout() {
+
+	fmt.Printf("Manage timeout timeout: %v \n", s.userId)
+	timeout := 30 * time.Second
+	if s.SessionTimeout == nil {
+		fmt.Printf("Set timeout: %v \n", s.userId)
+		s.SessionTimeout = time.NewTimer(timeout)
+	} else {
+		fmt.Printf("Reset timeout: %v \n", s.userId)
+		s.SessionTimeout.Stop()
+		s.SessionTimeout.Reset(timeout)
 	}
 }
