@@ -1,7 +1,7 @@
 package main
 
 import (
-	// i don't know the best way to do go imports/packages/namespaces :/
+	// i still don't know the best way to handle go imports/packages/namespaces :/
 	lockwood_manager "lockwood_task/src"
 	lockwood_server "lockwood_task/src/server"
 )

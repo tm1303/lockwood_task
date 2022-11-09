@@ -30,50 +30,53 @@ func (cm *ConnectionManager) UserConnects(request *server.ConnectionRequest, add
 
 	session := NewUserSession(request.UserId, &request.Friends, &Connection{Udp: addr})
 
-	go func(){
-		// todo: move to user_session with some funky func
-		statusRequest := <- session.OnlineStatusRequestChan
-		statusResponse := cm.RequestOnlineStatus(statusRequest)
-		session.OnlineStatusResponseChan  <- statusResponse
-	}()
+	go cm.MonitorOnlineStatusRequests(session)
+	go cm.MonitorOnlineStatusResponses(session)
 
-	go func(){
-		// todo: move to user_session with some funky func
-		statusResponse := <- session.OnlineStatusResponseChan
-		cm.ApplyStatusResponse(statusResponse)
-		session.OnlineStatusResponseChan  <- statusResponse
-	}()
-	
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
 	cm.users[request.UserId] = session
 }
 
-func (cm *ConnectionManager) RequestOnlineStatus(request *OnlineStatusRequest) *OnlineStatusResponse {
+func (cm *ConnectionManager) MonitorOnlineStatusRequests(session *UserSession) {
 
+	request := <-session.OnlineStatusRequestChan
+
+	// if the requested id is in the ConnectionManager's list of users...
 	if friendTarget, found := cm.users[request.FriendId]; found {
-
 		// todo: concurrency
 		// todo: validate symmatry
 
-		// add requester to targets friends list
+		// ...add requester to targets friends list
 		friendTarget.Friends[request.Requester.UserId] = request.Requester
 
-		return &OnlineStatusResponse{
-			Message:  fmt.Sprintf("Friend online: %v", friendTarget.UserId),
-			Friend: friendTarget,
-			Requester: request.Requester, // todo: can probs remove requester and just grab it in scope elsewhere
+		// ...send the target friend back to the requester with a happy message
+		session.OnlineStatusResponseChan <- &OnlineStatusResponse{
+			Message: fmt.Sprintf("Friend online: %v", friendTarget.UserId),
+			Friend:  friendTarget,
+			Request: request,
 		}
-	} else{
-		return &OnlineStatusResponse{
-			Message:   "User not online",
-			Friend: OfflineUser,
-			Requester: request.Requester,
+	} else {
+		// ...otherwise send back the "empty value" OfflineUser and a sad message
+		session.OnlineStatusResponseChan <- &OnlineStatusResponse{
+			Message: "User not online",
+			Friend:  OfflineUser,
+			Request: request,
 		}
 	}
 }
 
-func (cm *ConnectionManager) ApplyStatusResponse(response *OnlineStatusResponse) {
-	response.Requester.Friends[response.Friend.UserId] = response.Friend
+func (cm *ConnectionManager) MonitorOnlineStatusResponses(session *UserSession) {
+	// todo: concurrency
+	statusResponse := <-session.OnlineStatusResponseChan
+
+	currentSessionFriend := session.Friends[statusResponse.Request.FriendId]
+	responseFriend := statusResponse.Friend
+	// if the address of these friends has changed update the requesters list and notify the updated online status
+	if &currentSessionFriend != &responseFriend {
+		session.Friends[statusResponse.Request.FriendId] = responseFriend
+		// todo: notify
+	}
+
 }
