@@ -23,7 +23,7 @@ func (usm *UserSessionManager) Start() {
 	usm.server.Listen(usm.UserConnects)
 }
 
-func (usm *UserSessionManager) UserConnects(request *server.ConnectionRequest, notifier server.UserNotifierChannel) {
+func (usm *UserSessionManager) UserConnects(request *server.LogOnRequest, notifier server.UserNotifierChannel) {
 	fmt.Printf("User Connecting: %v \n", request.UserId)
 	userSession := NewUserSession(request.UserId, &request.Friends, notifier, usm)
 
@@ -42,6 +42,6 @@ func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSe
 	if user, found := usm.users[userId]; found {
 		return user, true
 	} else {
-		return OfflineUser, false
+		return nil, false
 	}
 }

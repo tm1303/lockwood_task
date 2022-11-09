@@ -6,7 +6,7 @@ import (
 )
 
 type PresenceServer interface {
-	Listen(handler func(*ConnectionRequest, UserNotifierChannel))
+	Listen(handler func(*LogOnRequest, UserNotifierChannel))
 	WriteUdp(message string, addr *net.UDPAddr)
 	WriteTcp(message string, vars any) // todo: support tcp
 }
@@ -32,13 +32,13 @@ func NewUdpServer(port string) *UdpServer {
 	return &UdpServer{connection: connection}
 }
 
-func (s *UdpServer) Listen(handler func(*ConnectionRequest, UserNotifierChannel)) {
+func (s *UdpServer) Listen(handler func(*LogOnRequest, UserNotifierChannel)) {
 	fmt.Println("Presence Server listening for user logins")
 	buffer := make([]byte, 1024)
 	for {
 		n, addr, _ := s.connection.ReadFromUDP(buffer)
 
-		conRequest := NewConnectionRequest(buffer[0:n])
+		conRequest := ParseLogOnRequest(buffer[0:n])
 		notifier := NewUdpNotifier(s, addr)
 		handler(conRequest, notifier)
 	}

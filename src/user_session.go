@@ -1,14 +1,13 @@
 package lockwood_task
 
 import (
-	// "fmt"
 	"fmt"
 	"lockwood_task/src/server"
 	"sync"
 	"time"
 )
 
-var OfflineUser *UserSession = &UserSession{
+var offlineUser *UserSession = &UserSession{
 	UserId:   -1,
 	Friends:  nil,
 	Notifier: nil,
@@ -36,7 +35,7 @@ func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierCh
 	friends := make(map[int]*UserSession, len(*friendIds))
 	for _, friendId := range *friendIds {
 		// initialy assume all friends are offline
-		friends[friendId] = OfflineUser
+		friends[friendId] = offlineUser
 	}
 
 	userSession := &UserSession{
@@ -113,8 +112,8 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 
 	currentSessionFriend := s.Friends[friendId]
 	// if the address of these friends has changed update the requesters list and notify the updated online status
-	if currentSessionFriend != OfflineUser {
-		s.Friends[friendId] = OfflineUser
+	if currentSessionFriend != offlineUser {
+		s.Friends[friendId] = offlineUser
 		s.Notifier <- fmt.Sprintf("Your friend is OFFLINE! (UserId: %v)", friendId)
 	}
 }

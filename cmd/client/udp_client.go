@@ -42,8 +42,8 @@ func main() {
 }
 
 // todo: validate these inputs, but not today.
-// todo: handle some err
-// todo: extract and share with tcp client (todo!)
+// todo: handle some err, but not today.
+// todo: extract and share with tcp client (todo!), but not today.
 func gatherPayload() []byte {
 
 	fmt.Print("\n\n\nPlease enter the following carefully\n")
@@ -73,7 +73,7 @@ func gatherPayload() []byte {
 		friends = append(friends, friendId)
 	}
 
-	request := lockwood_server.ConnectionRequest{UserId: userId, Friends: friends} // don't like this coupling but time is short
+	request := lockwood_server.LogOnRequest{UserId: userId, Friends: friends} // don't like this coupling but time is short
 	payload, err := json.Marshal(request)
 	if err != nil {
 		fmt.Println("error:", err)
