@@ -36,7 +36,7 @@ func (usm *UserSessionManager) UserConnects(request *server.ConnectionRequest, a
 	usm.users[request.UserId] = session
 }
 
-func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSession, accepted bool) {
+func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSession, found bool) {
 
 	usm.mutex.Lock()
 	defer usm.mutex.Unlock()

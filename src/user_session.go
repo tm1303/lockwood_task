@@ -1,7 +1,7 @@
 package lockwood_task
 
 import (
-	"fmt"
+	// "fmt"
 	"sync"
 )
 
@@ -20,7 +20,7 @@ type UserSession struct {
 	*Connection
 	IsOnline                 bool
 	OnlineStatusRequestChan  chan *OnlineStatusRequest
-	OnlineStatusResponseChan chan *OnlineStatusResponse
+	// OnlineStatusResponseChan chan *OnlineStatusResponse
 }
 
 type OnlineStatusRequest struct {
@@ -37,23 +37,61 @@ type OnlineStatusResponse struct {
 func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSessionManager) *UserSession {
 	friends := make(map[int]*UserSession, len(*friendIds))
 	for _, friendId := range *friendIds {
-		// assume this user is not online
+		// assume all friends are offline
 		friends[friendId] = OfflineUser
 	}
 
 	userSession := &UserSession{
-		UserId:                   userId,
-		Friends:                  friends,
-		Connection:               con,
-		IsOnline:                 true,
-		OnlineStatusRequestChan:  make(chan *OnlineStatusRequest),
-		OnlineStatusResponseChan: make(chan *OnlineStatusResponse),
+		UserId:                  userId,
+		Friends:                 friends,
+		Connection:              con,
+		IsOnline:                true,
+		OnlineStatusRequestChan: make(chan *OnlineStatusRequest),
+		////
+		//// todo: I think we can kill this second chan, bonus!
+		////
+		// OnlineStatusResponseChan: make(chan *OnlineStatusResponse),
 	}
 
 	go userSession.MonitorOnlineStatusRequests(usm)
-	go userSession.MonitorOnlineStatusResponses(usm)
+	////
+	//// todo: I think we can kill this second chan, bonus!
+	////
+	// go userSession.MonitorOnlineStatusResponses(usm)
 
 	return userSession
+}
+
+func (s *UserSession) ValidateFriendSymmetry(requesterId int) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	
+	_, ok := s.Friends[requesterId]
+	return ok
+}
+
+func (s *UserSession) UpdateFriend(updateFriend *UserSession) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	currentSessionFriend := s.Friends[updateFriend.UserId]
+	// if the address of these friends has changed update the requesters list and notify the updated online status
+	if currentSessionFriend != updateFriend {
+		s.Friends[updateFriend.UserId] = updateFriend
+		// todo: notify
+	}
+}
+
+func (s *UserSession) FriendOffline(friendId int) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	currentSessionFriend := s.Friends[friendId]
+	// if the address of these friends has changed update the requesters list and notify the updated online status
+	if currentSessionFriend != OfflineUser {
+		s.Friends[friendId] = OfflineUser
+		// todo: notify
+	}
 }
 
 func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
@@ -61,45 +99,50 @@ func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
 	for {
 		request := <-s.OnlineStatusRequestChan
 
-		// if the requested id is in the ConnectionManager's list of users...
-		if friendTarget, accepted := usm.GetConnectedUser(request.FriendId); accepted {
-			// todo: concurrency
-			// todo: validate symmatry
+		// if the requested friend id is in the ConnectionManager's list of users...
+		if friendTarget, found := usm.GetConnectedUser(request.FriendId); found {
+			// ...and the requested friend accepts the requester
+			if friendTarget.ValidateFriendSymmetry(s.UserId) {
 
-			// ...add requester to targets friends list
-			// todo: encapsualte
-			friendTarget.Friends[request.Requester.UserId] = request.Requester
+				// todo: concurrency
+				// todo: encapsualte
+				// ...add requester to targets friends list
+				friendTarget.UpdateFriend(request.Requester)
+				s.UpdateFriend(friendTarget)
 
-			// ...send the target friend back to the requester with a happy message
-			s.OnlineStatusResponseChan <- &OnlineStatusResponse{
-				Message: fmt.Sprintf("Friend online: %v", friendTarget.UserId),
-				Friend:  friendTarget,
-				Request: request,
-			}
-		} else {
-			// ...otherwise send back the "empty value" OfflineUser and a sad message
-			s.OnlineStatusResponseChan <- &OnlineStatusResponse{
-				Message: "User not online",
-				Friend:  OfflineUser,
-				Request: request,
+				////
+				//// todo: I think we can kill this second chan, bonus!
+				////
+				// ...send the target friend back to the requester with a happy message
+				// s.OnlineStatusResponseChan <- &OnlineStatusResponse{
+				// 	Message: fmt.Sprintf("Friend online: %v", friendTarget.UserId),
+				// 	Friend:  friendTarget,
+				// 	Request: request,
+				// }
+
+				continue
 			}
 		}
+
+		s.FriendOffline(request.FriendId)
+		// ...otherwise send back the "empty value" OfflineUser and a sad message
+		// s.OnlineStatusResponseChan <- &OnlineStatusResponse{
+		// 	Message: "User not online",
+		// 	Friend:  OfflineUser,
+		// 	Request: request,
+		// }
 	}
 }
 
-func (s *UserSession) MonitorOnlineStatusResponses(usm *UserSessionManager) {
-	for {
-		// todo: concurrency
-		statusResponse := <-s.OnlineStatusResponseChan
+// //
+// // todo: I think we can kill this second chan, bonus!
+// //
+// todo: better name please!
+// func (s *UserSession) MonitorOnlineStatusResponses(usm *UserSessionManager) {
+// 	for {
+// 		// todo: concurrency
+// 		statusResponse := <-s.OnlineStatusResponseChan
+// 		responseFriend := statusResponse.Friend
 
-		currentSessionFriend := s.Friends[statusResponse.Request.FriendId]
-		responseFriend := statusResponse.Friend
-		// if the address of these friends has changed update the requesters list and notify the updated online status
-		if &currentSessionFriend != &responseFriend {
-			s.mutex.Lock()
-			defer s.mutex.Unlock()
-			s.Friends[statusResponse.Request.FriendId] = responseFriend
-			// todo: notify
-		}
-	}
-}
+// 	}
+// }
