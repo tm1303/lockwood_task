@@ -30,7 +30,7 @@ type OnlineStatusRequest struct {
 	requester *UserSession
 }
 
-var refreshDelay time.Duration = 10 * time.Second
+var refreshDelay time.Duration = 5 * time.Second
 
 func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierChannel, usm *UserSessionManager) *UserSession {
 	friends := make(map[int]*UserSession, len(*friendIds))
@@ -83,13 +83,13 @@ func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
 		request := <-s.onlineStatusRequestChan
 		if friendTarget, found := usm.GetConnectedUser(request.friendId); found {
 			if friendTarget.ValidateFriendRequestSymmetry(s.userId) {
-				fmt.Printf("%v accepeted %v\n", request.friendId, s.userId)
+				fmt.Printf("%v verifies %v\n", request.friendId, s.userId)
 				friendTarget.UpdateFriend(request.requester)
 				s.UpdateFriend(friendTarget)
 				continue
 			}
 
-			fmt.Printf("%v did NOT accepet %v\n", request.friendId, s.userId)
+			fmt.Printf("%v did NOT verify %v\n", request.friendId, s.userId)
 		} else {
 			fmt.Printf("%v appears OFFLINE to %v\n", request.friendId, s.userId)
 			s.SetFriendAsOffline(request.friendId)
@@ -129,7 +129,7 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 	}
 }
 
-var timeout time.Duration = 30 * time.Second
+var timeout time.Duration = 7 * time.Second
 
 func (s *UserSession) ResetTimeout() {
 	if s.SessionTimeout == nil {

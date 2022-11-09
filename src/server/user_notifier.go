@@ -20,5 +20,5 @@ func NewUdpNotifier(server PresenceServer, addr *net.UDPAddr) UserNotifierChanne
 
 func NewTcpNotifier(server PresenceServer, vars any) UserNotifierChannel {
 	panic("Not yet implemented.")
-	// but when it is we should have a nice generic way to notify users connected to either flavour of server
+	// ...but when it is we should have a nice generic way to notify users connected to either flavour of server
 }
