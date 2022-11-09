@@ -8,25 +8,25 @@ import (
 )
 
 var offlineUser *UserSession = &UserSession{
-	UserId:   -1,
-	Friends:  nil,
+	userId:   -1,
+	friends:  nil,
 	Notifier: nil,
-	IsOnline: false,
+	isOnline: false,
 	// todo : default chans to handle always rejected requests
 }
 
 type UserSession struct {
-	UserId                  int
+	userId                  int
 	Notifier                server.UserNotifierChannel
-	IsOnline                bool
-	OnlineStatusRequestChan chan *OnlineStatusRequest
+	isOnline                bool
+	onlineStatusRequestChan chan *OnlineStatusRequest
 	mutex                   sync.Mutex
-	Friends                 map[int]*UserSession
+	friends                 map[int]*UserSession
 }
 
 type OnlineStatusRequest struct {
-	FriendId  int
-	Requester *UserSession
+	friendId  int
+	requester *UserSession
 }
 
 var refreshDelay time.Duration = 10 * time.Second
@@ -39,11 +39,11 @@ func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierCh
 	}
 
 	userSession := &UserSession{
-		UserId:                  userId,
-		Friends:                 friends,
+		userId:                  userId,
+		friends:                 friends,
 		Notifier:                notifier,
-		IsOnline:                true,
-		OnlineStatusRequestChan: make(chan *OnlineStatusRequest),
+		isOnline:                true,
+		onlineStatusRequestChan: make(chan *OnlineStatusRequest),
 	}
 
 	go userSession.MonitorOnlineStatusRequests(usm)
@@ -58,30 +58,30 @@ func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierCh
 }
 
 func (s *UserSession) RefreshAllFriendsOnlineStatus() {
-	fmt.Printf("\nRefresh all friends for %v\n", s.UserId)
-	for friendId := range s.Friends {
-		s.OnlineStatusRequestChan <- &OnlineStatusRequest{
-			FriendId:  friendId,
-			Requester: s,
+	fmt.Printf("\nRefresh all friends for %v\n", s.userId)
+	for friendId := range s.friends {
+		s.onlineStatusRequestChan <- &OnlineStatusRequest{
+			friendId:  friendId,
+			requester: s,
 		}
 	}
 }
 
 func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
 	for {
-		request := <-s.OnlineStatusRequestChan
-		if friendTarget, found := usm.GetConnectedUser(request.FriendId); found {
-			if friendTarget.ValidateFriendRequestSymmetry(s.UserId) {
-				fmt.Printf("%v accepeted %v\n", request.FriendId, s.UserId)
-				friendTarget.UpdateFriend(request.Requester)
+		request := <-s.onlineStatusRequestChan
+		if friendTarget, found := usm.GetConnectedUser(request.friendId); found {
+			if friendTarget.ValidateFriendRequestSymmetry(s.userId) {
+				fmt.Printf("%v accepeted %v\n", request.friendId, s.userId)
+				friendTarget.UpdateFriend(request.requester)
 				s.UpdateFriend(friendTarget)
 				continue
 			}
 
-			fmt.Printf("%v did NOT accepet %v\n", request.FriendId, s.UserId)
+			fmt.Printf("%v did NOT accepet %v\n", request.friendId, s.userId)
 		} else {
-			fmt.Printf("%v appears OFFLINE to %v\n", request.FriendId, s.UserId)
-			s.SetFriendAsOffline(request.FriendId)
+			fmt.Printf("%v appears OFFLINE to %v\n", request.friendId, s.userId)
+			s.SetFriendAsOffline(request.friendId)
 		}
 	}
 }
@@ -90,7 +90,7 @@ func (s *UserSession) ValidateFriendRequestSymmetry(requesterId int) bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	_, ok := s.Friends[requesterId]
+	_, ok := s.friends[requesterId]
 	return ok
 }
 
@@ -98,11 +98,11 @@ func (s *UserSession) UpdateFriend(updateFriend *UserSession) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	currentSessionFriend := s.Friends[updateFriend.UserId]
+	currentSessionFriend := s.friends[updateFriend.userId]
 	// if the address of these friends has changed update the requesters list and notify the updated online status
 	if currentSessionFriend != updateFriend {
-		s.Friends[updateFriend.UserId] = updateFriend
-		s.Notifier <- fmt.Sprintf("Your friend is ONLINE! (UserId: %v)", updateFriend.UserId)
+		s.friends[updateFriend.userId] = updateFriend
+		s.Notifier <- fmt.Sprintf("Your friend is ONLINE! (UserId: %v)", updateFriend.userId)
 	}
 }
 
@@ -110,10 +110,10 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	currentSessionFriend := s.Friends[friendId]
+	currentSessionFriend := s.friends[friendId]
 	// if the address of these friends has changed update the requesters list and notify the updated online status
 	if currentSessionFriend != offlineUser {
-		s.Friends[friendId] = offlineUser
+		s.friends[friendId] = offlineUser
 		s.Notifier <- fmt.Sprintf("Your friend is OFFLINE! (UserId: %v)", friendId)
 	}
 }
