@@ -27,12 +27,6 @@ type OnlineStatusRequest struct {
 	Requester *UserSession
 }
 
-type OnlineStatusResponse struct {
-	Message string
-	Friend  *UserSession
-	Request *OnlineStatusRequest
-}
-
 func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSessionManager) *UserSession {
 	friends := make(map[int]*UserSession, len(*friendIds))
 	for _, friendId := range *friendIds {
