@@ -18,9 +18,8 @@ type UserSession struct {
 	UserId  int
 	Friends map[int]*UserSession
 	*Connection
-	IsOnline                 bool
-	OnlineStatusRequestChan  chan *OnlineStatusRequest
-	// OnlineStatusResponseChan chan *OnlineStatusResponse
+	IsOnline                bool
+	OnlineStatusRequestChan chan *OnlineStatusRequest
 }
 
 type OnlineStatusRequest struct {
@@ -37,7 +36,7 @@ type OnlineStatusResponse struct {
 func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSessionManager) *UserSession {
 	friends := make(map[int]*UserSession, len(*friendIds))
 	for _, friendId := range *friendIds {
-		// assume all friends are offline
+		// initialy assume all friends are offline
 		friends[friendId] = OfflineUser
 	}
 
@@ -47,17 +46,9 @@ func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSess
 		Connection:              con,
 		IsOnline:                true,
 		OnlineStatusRequestChan: make(chan *OnlineStatusRequest),
-		////
-		//// todo: I think we can kill this second chan, bonus!
-		////
-		// OnlineStatusResponseChan: make(chan *OnlineStatusResponse),
 	}
 
 	go userSession.MonitorOnlineStatusRequests(usm)
-	////
-	//// todo: I think we can kill this second chan, bonus!
-	////
-	// go userSession.MonitorOnlineStatusResponses(usm)
 
 	return userSession
 }
@@ -65,7 +56,7 @@ func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSess
 func (s *UserSession) ValidateFriendSymmetry(requesterId int) bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	
+
 	_, ok := s.Friends[requesterId]
 	return ok
 }
@@ -95,54 +86,16 @@ func (s *UserSession) FriendOffline(friendId int) {
 }
 
 func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
-
 	for {
 		request := <-s.OnlineStatusRequestChan
-
-		// if the requested friend id is in the ConnectionManager's list of users...
 		if friendTarget, found := usm.GetConnectedUser(request.FriendId); found {
-			// ...and the requested friend accepts the requester
 			if friendTarget.ValidateFriendSymmetry(s.UserId) {
-
-				// todo: concurrency
-				// todo: encapsualte
-				// ...add requester to targets friends list
 				friendTarget.UpdateFriend(request.Requester)
 				s.UpdateFriend(friendTarget)
-
-				////
-				//// todo: I think we can kill this second chan, bonus!
-				////
-				// ...send the target friend back to the requester with a happy message
-				// s.OnlineStatusResponseChan <- &OnlineStatusResponse{
-				// 	Message: fmt.Sprintf("Friend online: %v", friendTarget.UserId),
-				// 	Friend:  friendTarget,
-				// 	Request: request,
-				// }
-
 				continue
 			}
+		} else {
+			s.FriendOffline(request.FriendId)
 		}
-
-		s.FriendOffline(request.FriendId)
-		// ...otherwise send back the "empty value" OfflineUser and a sad message
-		// s.OnlineStatusResponseChan <- &OnlineStatusResponse{
-		// 	Message: "User not online",
-		// 	Friend:  OfflineUser,
-		// 	Request: request,
-		// }
 	}
 }
-
-// //
-// // todo: I think we can kill this second chan, bonus!
-// //
-// todo: better name please!
-// func (s *UserSession) MonitorOnlineStatusResponses(usm *UserSessionManager) {
-// 	for {
-// 		// todo: concurrency
-// 		statusResponse := <-s.OnlineStatusResponseChan
-// 		responseFriend := statusResponse.Friend
-
-// 	}
-// }
