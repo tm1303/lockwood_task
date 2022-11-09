@@ -39,6 +39,7 @@ func (s *UdpServer) Listen(handler func(*LogOnRequest, UserNotifierChannel)) {
 		n, addr, _ := s.connection.ReadFromUDP(buffer)
 
 		conRequest := ParseLogOnRequest(buffer[0:n])
+		fmt.Printf("lor %v addr %v", conRequest.UserId, addr)
 		notifier := NewUdpNotifier(s, addr)
 		handler(conRequest, notifier)
 	}

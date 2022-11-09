@@ -48,18 +48,17 @@ func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierCh
 	}
 
 	go userSession.MonitorOnlineStatusRequests(usm)
-	go keepFriendStatusUpdated(usm, userId)
+	go userSession.KeepFriendStatusUpdated(usm)
 
 	return userSession
 }
 
-func keepFriendStatusUpdated(usm *UserSessionManager, userId int) {
+func  (s *UserSession) KeepFriendStatusUpdated(usm *UserSessionManager) {
 	for {
-		user, found := usm.GetConnectedUser(userId)
-		if !found {
+		if !usm.VerifyConnectedUser(s) {
 			break
 		}
-		user.RefreshAllFriendsOnlineStatus()
+		s.RefreshAllFriendsOnlineStatus()
 		time.Sleep(refreshDelay)
 	}
 }
@@ -77,8 +76,7 @@ func (s *UserSession) RefreshAllFriendsOnlineStatus() {
 
 func (s *UserSession) MonitorOnlineStatusRequests(usm *UserSessionManager) {
 	for {
-		_, found := usm.GetConnectedUser(s.userId)
-		if !found {
+		if !usm.VerifyConnectedUser(s) {
 			break
 		}
 
@@ -131,15 +129,12 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 	}
 }
 
-func (s *UserSession) ResetTimeout() {
+var timeout time.Duration = 30 * time.Second
 
-	fmt.Printf("Manage timeout timeout: %v \n", s.userId)
-	timeout := 30 * time.Second
+func (s *UserSession) ResetTimeout() {
 	if s.SessionTimeout == nil {
-		fmt.Printf("Set timeout: %v \n", s.userId)
 		s.SessionTimeout = time.NewTimer(timeout)
 	} else {
-		fmt.Printf("Reset timeout: %v \n", s.userId)
 		s.SessionTimeout.Stop()
 		s.SessionTimeout.Reset(timeout)
 	}

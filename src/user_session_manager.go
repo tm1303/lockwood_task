@@ -19,6 +19,7 @@ func NewUserSessionManager(server server.PresenceServer) *UserSessionManager {
 	}
 }
 
+
 func (usm *UserSessionManager) Start() {
 	usm.server.Listen(usm.UserConnects)
 }
@@ -30,6 +31,7 @@ func (usm *UserSessionManager) UserConnects(request *server.LogOnRequest, notifi
 		usm.AddUser(request, userSession, notifier)
 	} else {
 		userSession.ResetTimeout()
+		userSession.Notifier = notifier //because their udp address changed
 	}
 }
 
@@ -73,5 +75,17 @@ func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSe
 		return user, user != nil
 	} else {
 		return nil, false
+	}
+}
+
+func (usm *UserSessionManager) VerifyConnectedUser(user *UserSession) (found bool) {
+
+	usm.mutex.Lock()
+	defer usm.mutex.Unlock()
+
+	if foundUser, found := usm.users[user.userId]; !found {
+		return false
+	} else {
+		return foundUser == user
 	}
 }
