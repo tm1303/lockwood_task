@@ -27,33 +27,32 @@ func (usm *UserSessionManager) Start() {
 func (usm *UserSessionManager) UserConnects(request *server.LogOnRequest, notifier server.UserNotifierChannel) {
 
 	userSession, found := usm.GetConnectedUser(request.UserId) // todo: could poss check udp address to ensure is same user client??
-	if !found {
-		usm.AddUser(request, userSession, notifier)
-	} else {
+	if found {
 		userSession.ResetTimeout()
-		userSession.Notifier = notifier //because their udp address changed
+		// TODO: fix this, because their udp address might have changed , not great :/ 
+		userSession.Notifier = notifier 
+	} else {
+		userSession = NewUserSession(request.UserId, &request.Friends, notifier, usm)
+		usm.AddUser( userSession, notifier)
 	}
 }
 
-func (usm *UserSessionManager) AddUser(request *server.LogOnRequest, userSession *UserSession, notifier server.UserNotifierChannel) {
-	fmt.Printf("User Connecting: %v \n", request.UserId)
-	userSession = NewUserSession(request.UserId, &request.Friends, notifier, usm)
-
+func (usm *UserSessionManager) AddUser(userSession *UserSession, notifier server.UserNotifierChannel) {
+	fmt.Printf("User Connecting: %v \n", userSession.userId)
+	
 	usm.mutex.Lock()
 	defer usm.mutex.Unlock()
-
-	usm.users[request.UserId] = userSession
-	userSession.Notifier <- fmt.Sprintf("You have connected! (UserId: %v)", request.UserId)
-
+	usm.users[userSession.userId] = userSession
 	userSession.ResetTimeout()
+
 	go func() {
 		for {
-			user, found := usm.GetConnectedUser(request.UserId)
+			found := usm.VerifyConnectedUser(userSession)
 			if !found{
 				break
 			}
 			// if the users SessionTimeout expires before it is reset we must kill the user!
-			<-user.SessionTimeout.C
+			<-userSession.SessionTimeout.C
 			usm.RemoveUser(userSession)
 		}
 	}()
