@@ -47,7 +47,6 @@ func (s *UdpServer) Listen(handler func(*LogOnRequest, UserNotifierChannel)) {
 func (s *UdpServer) WriteUdp(message string, addr *net.UDPAddr) {
 
 	data := []byte(message)
-	fmt.Printf("data: %s\n", string(data))
 	_, err := s.connection.WriteToUDP(data, addr)
 	if err != nil {
 		fmt.Println(err)
