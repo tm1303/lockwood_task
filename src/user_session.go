@@ -3,21 +3,22 @@ package lockwood_task
 import (
 	// "fmt"
 	"fmt"
+	"lockwood_task/src/server"
 	"sync"
 	"time"
 )
 
 var OfflineUser *UserSession = &UserSession{
-	UserId:     -1,
-	Friends:    nil,
-	Connection: nil,
-	IsOnline:   false,
+	UserId:   -1,
+	Friends:  nil,
+	Notifier: nil,
+	IsOnline: false,
 	// todo : default chans to handle always rejected requests
 }
 
 type UserSession struct {
-	UserId int
-	*Connection
+	UserId                  int
+	Notifier                server.UserNotifierChannel
 	IsOnline                bool
 	OnlineStatusRequestChan chan *OnlineStatusRequest
 	mutex                   sync.Mutex
@@ -31,7 +32,7 @@ type OnlineStatusRequest struct {
 
 var refreshDelay time.Duration = 10 * time.Second
 
-func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSessionManager) *UserSession {
+func NewUserSession(userId int, friendIds *[]int, notifier server.UserNotifierChannel, usm *UserSessionManager) *UserSession {
 	friends := make(map[int]*UserSession, len(*friendIds))
 	for _, friendId := range *friendIds {
 		// initialy assume all friends are offline
@@ -41,7 +42,7 @@ func NewUserSession(userId int, friendIds *[]int, con *Connection, usm *UserSess
 	userSession := &UserSession{
 		UserId:                  userId,
 		Friends:                 friends,
-		Connection:              con,
+		Notifier:                notifier,
 		IsOnline:                true,
 		OnlineStatusRequestChan: make(chan *OnlineStatusRequest),
 	}
@@ -102,7 +103,7 @@ func (s *UserSession) UpdateFriend(updateFriend *UserSession) {
 	// if the address of these friends has changed update the requesters list and notify the updated online status
 	if currentSessionFriend != updateFriend {
 		s.Friends[updateFriend.UserId] = updateFriend
-		// todo: notify
+		s.Notifier <- fmt.Sprintf("Your friend is ONLINE! (UserId: %v)", updateFriend.UserId)
 	}
 }
 
@@ -114,6 +115,6 @@ func (s *UserSession) SetFriendAsOffline(friendId int) {
 	// if the address of these friends has changed update the requesters list and notify the updated online status
 	if currentSessionFriend != OfflineUser {
 		s.Friends[friendId] = OfflineUser
-		// todo: notify
+		s.Notifier <- fmt.Sprintf("Your friend is OFFLINE! (UserId: %v)", friendId)
 	}
 }

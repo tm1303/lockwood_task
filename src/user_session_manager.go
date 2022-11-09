@@ -3,11 +3,10 @@ package lockwood_task
 import (
 	"fmt"
 	"lockwood_task/src/server"
-	"net"
 	"sync"
 )
 
-	type UserSessionManager struct {
+type UserSessionManager struct {
 	server server.PresenceServer
 	mutex  sync.Mutex
 	users  map[int]*UserSession
@@ -24,15 +23,15 @@ func (usm *UserSessionManager) Start() {
 	usm.server.Listen(usm.UserConnects)
 }
 
-func (usm *UserSessionManager) UserConnects(request *server.ConnectionRequest, addr *net.UDPAddr) {
+func (usm *UserSessionManager) UserConnects(request *server.ConnectionRequest, notifier server.UserNotifierChannel) {
 	fmt.Printf("User Connecting: %v \n", request.UserId)
-	session := NewUserSession(request.UserId, &request.Friends, &Connection{Udp: addr}, usm)
+	userSession := NewUserSession(request.UserId, &request.Friends, notifier, usm)
 
 	usm.mutex.Lock()
 	defer usm.mutex.Unlock()
 
-	usm.users[request.UserId] = session
-	usm.server.Write(fmt.Sprintf("You have connected! (UserId: %v)", request.UserId), addr)
+	usm.users[request.UserId] = userSession
+	userSession.Notifier <- fmt.Sprintf("You have connected! (UserId: %v)", request.UserId)
 }
 
 func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSession, found bool) {

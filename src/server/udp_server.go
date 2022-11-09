@@ -6,8 +6,9 @@ import (
 )
 
 type PresenceServer interface {
-	Listen(handler func(*ConnectionRequest, *net.UDPAddr))
-	Write(message string, addr *net.UDPAddr) 
+	Listen(handler func(*ConnectionRequest, UserNotifierChannel))
+	WriteUdp(message string, addr *net.UDPAddr)
+	WriteTcp(message string, vars any) // todo: support tcp
 }
 
 type UdpServer struct {
@@ -31,24 +32,29 @@ func NewUdpServer(port string) *UdpServer {
 	return &UdpServer{connection: connection}
 }
 
-func (s *UdpServer) Listen(handler func(*ConnectionRequest, *net.UDPAddr)) {
+func (s *UdpServer) Listen(handler func(*ConnectionRequest, UserNotifierChannel)) {
 	fmt.Println("Presence Server listening for user logins")
 	buffer := make([]byte, 1024)
 	for {
 		n, addr, _ := s.connection.ReadFromUDP(buffer)
 
 		conRequest := NewConnectionRequest(buffer[0:n])
-		handler(conRequest, addr)
+		notifier := NewUdpNotifier(s, addr)
+		handler(conRequest, notifier)
 	}
 }
 
-func (s *UdpServer) Write(message string, addr *net.UDPAddr) {
+func (s *UdpServer) WriteUdp(message string, addr *net.UDPAddr) {
 
 	data := []byte(message)
 	fmt.Printf("data: %s\n", string(data))
 	_, err := s.connection.WriteToUDP(data, addr)
 	if err != nil {
-			fmt.Println(err)
-			return
+		fmt.Println(err)
+		return
 	}
+}
+
+func (s *UdpServer) WriteTcp(message string, vars any) {
+	panic("UDP Server doesn't support TCP")
 }
