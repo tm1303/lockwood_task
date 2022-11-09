@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	lockwood_server "lockwood_task/src/server"
 )
@@ -23,11 +24,18 @@ func main() {
 
 	defer c.Close()
 
-	_, err = c.Write(payload)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	var keepAlive time.Duration = 10 * time.Second
+	go func() {
+		for {
+			// keep our session alive until the client is killed by user
+			_, err = c.Write(payload)
+
+			if err != nil {
+				fmt.Println(err)
+			}
+			time.Sleep(keepAlive)
+		}
+	}()
 
 	for {
 		buffer := make([]byte, 1024)
