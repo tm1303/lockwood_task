@@ -32,7 +32,7 @@ func NewUdpServer(port string) *UdpServer {
 }
 
 func (s *UdpServer) Listen(handler func(*ConnectionRequest, *net.UDPAddr)) {
-
+	fmt.Println("Presence Server listening for user logins")
 	buffer := make([]byte, 1024)
 	for {
 		n, addr, _ := s.connection.ReadFromUDP(buffer)

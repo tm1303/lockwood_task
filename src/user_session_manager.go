@@ -7,10 +7,10 @@ import (
 	"sync"
 )
 
-type UserSessionManager struct {
-	mutex  *sync.Mutex
-	users  map[int]*UserSession
+	type UserSessionManager struct {
 	server server.PresenceServer
+	mutex  sync.Mutex
+	users  map[int]*UserSession
 }
 
 func NewUserSessionManager(server server.PresenceServer) *UserSessionManager {
@@ -26,14 +26,13 @@ func (usm *UserSessionManager) Start() {
 
 func (usm *UserSessionManager) UserConnects(request *server.ConnectionRequest, addr *net.UDPAddr) {
 	fmt.Printf("User Connecting: %v \n", request.UserId)
-	usm.server.Write(fmt.Sprintf("You have connected! (UserId: %v)", request.UserId), addr)
-
 	session := NewUserSession(request.UserId, &request.Friends, &Connection{Udp: addr}, usm)
 
 	usm.mutex.Lock()
 	defer usm.mutex.Unlock()
 
 	usm.users[request.UserId] = session
+	usm.server.Write(fmt.Sprintf("You have connected! (UserId: %v)", request.UserId), addr)
 }
 
 func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSession, found bool) {
