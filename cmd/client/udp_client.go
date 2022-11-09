@@ -24,7 +24,9 @@ func main() {
 
 	defer c.Close()
 
-	var keepAlive time.Duration = 10 * time.Second
+	
+	fmt.Println("\nBeginning transmition...")
+	var keepAlive time.Duration = 5 * time.Second
 	go func() {
 		for {
 			// keep our session alive until the client is killed by user
@@ -37,6 +39,8 @@ func main() {
 		}
 	}()
 
+
+	fmt.Println("\nAwaiting notifications...")
 	for {
 		buffer := make([]byte, 1024)
 		n, _, err := c.ReadFromUDP(buffer)
@@ -44,8 +48,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("Incoming Notification:")
-		fmt.Printf(" > >  %s\n", string(buffer[0:n]))
+		fmt.Printf(" > %s\n", string(buffer[0:n]))
 	}
 }
 
