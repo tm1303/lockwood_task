@@ -18,7 +18,7 @@ Run as many clients as you like
 docker run --rm -it --network host lockwood_task_client
 ```
 
-## Run from DockerHub
+## Run from DockerHub (not recommended)
 
 These images are big and unoptimised (and who knows what virus's I've packaged up) so not recommended but if you want to run direct from dockerhub...
 ```
