@@ -39,7 +39,6 @@ func (s *UdpServer) Listen(handler func(*LogOnRequest, UserNotifierChannel)) {
 		n, addr, _ := s.connection.ReadFromUDP(buffer)
 
 		conRequest := ParseLogOnRequest(buffer[0:n])
-		fmt.Printf("lor %v addr %v", conRequest.UserId, addr)
 		// oh no, I've made a mistake with no time to fix it
 		// I'm creating a new Notifier every time a client pings us
 		// I should only do this when the addr for a userId changes

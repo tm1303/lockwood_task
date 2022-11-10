@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+
+FROM golang:1.19-alpine
+
+WORKDIR /app
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . ./
+
+WORKDIR ./cmd/client
+RUN go build -o /lockwood_task_client
+
+EXPOSE 13132/udp
+
+CMD [ "/lockwood_task_client" ]

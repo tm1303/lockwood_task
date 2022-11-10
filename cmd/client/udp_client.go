@@ -15,17 +15,17 @@ func main() {
 
 	payload := gatherPayload()
 
-	s, err := net.ResolveUDPAddr("udp4", "localhost:13131")
+	s, err := net.ResolveUDPAddr("udp4", "0.0.0.0:13131")
 	c, err := net.DialUDP("udp4", nil, s)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err)	
 		return
 	}
 
 	defer c.Close()
 
 	
-	fmt.Println("\nBeginning transmition...")
+	fmt.Println("\nBeginning transmission...")
 	var keepAlive time.Duration = 5 * time.Second
 	go func() {
 		for {

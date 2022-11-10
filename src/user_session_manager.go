@@ -29,7 +29,7 @@ func (usm *UserSessionManager) UserConnects(request *server.LogOnRequest, notifi
 	userSession, found := usm.GetConnectedUser(request.UserId) // todo: could poss check udp address to ensure is same user client??
 	if found {
 		userSession.ResetTimeout()
-		// TODO: fix this, because their udp address might have changed , not great :/ 
+		// TODO: fix this, only here because their udp address might have changed, not great :/ 
 		userSession.Notifier = notifier 
 	} else {
 		userSession = NewUserSession(request.UserId, &request.Friends, notifier, usm)
@@ -77,6 +77,9 @@ func (usm *UserSessionManager) GetConnectedUser(userId int) (userSession *UserSe
 	}
 }
 
+// attaching goroos to users seemed like a good idea, but after killing of a session the goroos are still active
+// so here we are checking the session (not the user-id) the goroo is interested in is still in the list
+// in hindsight a more task orientated goroo would be preferable, a refactor maybe, but not for today.
 func (usm *UserSessionManager) VerifyConnectedUser(user *UserSession) (found bool) {
 
 	usm.mutex.Lock()
