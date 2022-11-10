@@ -64,8 +64,12 @@ In the server terminal you'll see a whole mess at this point. Interestingly if y
  
 ## Questions
 1. What changes if we switch TCP to UDP?
+* TCP requires us to think about ongoing connections rather than just transmitting data between two addresses. TCP is more conncerned with lost data than UDP but UDP is less overhead. 
 2. How would you detect the user (connection) is still online?
+* My UDP client has to keep reminding the server it is still online, if this was TCP they'd "hold hands" for the lifetime of the connection so no need to remind the server.
 3. What happens if the user has a lot of friends?
+* I've tried to design in such a way that the immediate behaviour isn't affected by lots of friends but one pottential issue I haven't covered off is if the periodic "refresh" takes longer than the refresh period. The other concern is mutex congestion, as we increase the locking for more users we have a single small mutex to squeeze sync access via, this will bottleneck.
 4. How design of your application will change if there will be more than one instance of the server
+* My main goal in this case would be to either move the in-mem store out to maybe redis (which would be nice for handling UDP timeouts) or if we stick with in mem we'd need a mechanism for eventual consitancy.
  
 
