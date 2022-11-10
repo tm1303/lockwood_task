@@ -17,6 +17,14 @@ Run as many clients as you like
 ```
 docker run --rm -it --network host lockwood_task_client
 ```
+
+## Run from DockerHub
+
+These images are big and unoptimised (and who knows what virus's I've packaged up) so not recommended but if you want to run direct from dockerhub...
+```
+docker run --rm -it -p 13131:13131/udp tm1303/lockwood:v1
+docker run --rm -it --network host tm1303/lockwood:v1_client
+```
  
 ## User Guide
 I would recommend opening 4 or more terminal windows to get a feel for how this works. In your first terminal run the server as above and you should see `Presence Server listening for user logins`. Later on there will be some debug logging in this window but I'd recommend using it as "clue" to the code rather than trying to understand it directly.
